@@ -200,7 +200,6 @@ def main():
             f"{message.src_ip}:{message.src_port}\t{message.dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
         )
 
-    print("finished")
 
 if __name__ == "__main__":
     main()
