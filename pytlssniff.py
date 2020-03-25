@@ -183,10 +183,10 @@ def main():
             else:
                 dns_name = message.cn
         if message.san is not None:
-            try:
-                message.san.remove(dns_name)
-            except ValueError:
-                pass
+            if message.sni in message.san:
+                message.san.remove(message.sni)
+            if message.cn in message.san:
+                message.san.remove(message.cn)
 
             if len(message.san) > 0:
                 if dns_name != '':
