@@ -86,7 +86,7 @@ class TLSHandshakeSniffer():
         # Until then, only the 'tcp' filter is applied
         # bpf_filter = 'tcp[((tcp[12:1] & 0xf0) >> 2):1] = 22'
         bpf_filter = 'tcp'
-        display_filter = f'ssl.record.content_type == 22 && ssl.handshake.type'
+        display_filter = f'(ssl.record.content_type == 22 && ssl.handshake.type)'
 
         if self.custom_capture_filter != "":
             bpf_filter += f' && {self.custom_capture_filter.strip()}'
