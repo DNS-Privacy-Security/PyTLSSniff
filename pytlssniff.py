@@ -46,10 +46,10 @@ class TLSHandshakeMessage(NamedTuple):
 
 
 class TLSHandshakeSniffer():
-    def __init__(self, interface='any', custom_capture_filter='', custom_display_filter=''):
+    def __init__(self, interface='any', custom_bpf_filter='', custom_display_filter=''):
         self.interface = interface
-        self.custom_capture_filter = custom_capture_filter
-        self.custom_display_filter = custom_capture_filter
+        self.custom_bpf_filter = custom_bpf_filter
+        self.custom_display_filter = custom_display_filter
 
     @classmethod
     def _extract_certificate_san(cls, x509cert: OpenSSL.crypto.X509) -> Optional[List[str]]:
@@ -84,22 +84,22 @@ class TLSHandshakeSniffer():
         except Exception:
             return None
 
-    def listen(self, sniff_sni=True, sniff_cn=True, sniff_san=True, packet_count: int = None) -> Iterator[TLSHandshakeMessage]:
+    def listen(self, sniff_sni=True, sniff_cn=True, sniff_san=True, packet_count: int = None, debug: bool = False) -> Iterator[TLSHandshakeMessage]:
         # Currently only IPv4 is supported for BPF tcp data access. Manpage says: "this will be fixed in the future" for IPv6.
         # Until then, only the 'tcp' filter is applied
         # bpf_filter = 'tcp[((tcp[12:1] & 0xf0) >> 2):1] = 22'
         bpf_filter = 'tcp'
         display_filter = f'(ssl.record.content_type == 22 && ssl.handshake.type)'
 
-        if self.custom_capture_filter != "":
+        if self.custom_bpf_filter != '':
             bpf_filter += f' && {self.custom_capture_filter.strip()}'
-        if self.custom_display_filter != "":
+        if self.custom_display_filter != '':
             display_filter += f' && {self.custom_display_filter.strip()}'
 
         if packet_count is not None and packet_count <= 0:
             packet_count = None
 
-        capture = pyshark.LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter)
+        capture = pyshark.LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter, debug=debug)
         for packet in capture.sniff_continuously():
             san = None
             cn = None
@@ -157,6 +157,8 @@ class TLSHandshakeSniffer():
 def parse_args():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("-d", '--debug', dest='debug', action='store_true',
+                        help="enable debug mode")
     parser.add_argument("-s", '--sni', dest='sni', action='store_true',
                         help="sniff SNI values from TLS handshakes")
     parser.add_argument("-a", '--san', dest='san', action='store_true',
@@ -167,8 +169,8 @@ def parse_args():
                         help="name or idx of interface (default: any)", required=False)
     parser.add_argument("-p", '--packet-count', dest='packet_count', type=int, default=None,
                         help="stop after n packets (def: infinite)", required=False)
-    parser.add_argument("-f", "--capture-filter", dest="capture_filter", default="",
-                        help="packet filter in libpcap filter syntax", required=False)
+    parser.add_argument("-b", "--bpf-filter", dest="bpf_filter", default="",
+                        help="packet filter in Berkeley Packet Filter (BPF) syntax", required=False)
     parser.add_argument("-Y", "--display-filter", dest="display_filter", default="",
                         help="packet displaY filter in Wireshark display filter", required=False)
 
@@ -177,14 +179,14 @@ def parse_args():
 
 def main():
     args = parse_args()
-    handshake_sniffer = TLSHandshakeSniffer(args.interface, args.capture_filter, args.display_filter)
+    handshake_sniffer = TLSHandshakeSniffer(args.interface, args.bpf_filter, args.display_filter)
 
     if not (args.sni or args.cn or args.san):
         args.sni = True
         args.cn = True
         args.san = True
 
-        for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count):
+        for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count, args.debug):
             dns_name = ''
 
             if message.sni is not None:
