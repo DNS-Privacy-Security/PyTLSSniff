@@ -235,7 +235,7 @@ def main():
 
         print(
             f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
-            f"{src_ip}:{message.src_port}\t{dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
+            f"{src_ip}:{message.src_port}\t{dst_ip}:{message.dst_port}\t{dns_name}", flush=True
         )
 
 
