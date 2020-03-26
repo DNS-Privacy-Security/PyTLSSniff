@@ -204,33 +204,33 @@ def main():
         args.cn = True
         args.san = True
 
-        for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count, args.debug):
-            dns_name = ''
+    for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count, args.debug):
+        dns_name = ''
 
-            if message.sni is not None:
-                dns_name = message.sni
-            if message.cn is not None:
-                if dns_name != '' and dns_name != message.cn:
-                    dns_name += f",{message.cn}"
-                else:
-                    dns_name = message.cn
-            if message.san is not None:
-                if message.sni in message.san:
-                    message.san.remove(message.sni)
-                if message.cn in message.san:
-                    message.san.remove(message.cn)
+        if message.sni is not None:
+            dns_name = message.sni
+        if message.cn is not None:
+            if dns_name != '' and dns_name != message.cn:
+                dns_name += f",{message.cn}"
+            else:
+                dns_name = message.cn
+        if message.san is not None:
+            if message.sni in message.san:
+                message.san.remove(message.sni)
+            if message.cn in message.san:
+                message.san.remove(message.cn)
 
-                if len(message.san) > 0:
-                    if dns_name != '':
-                        dns_name += ','
-                    dns_name += ','.join(message.san)
+            if len(message.san) > 0:
+                if dns_name != '':
+                    dns_name += ','
+                dns_name += ','.join(message.san)
 
-            ip_version = 'IPv4' if message.ip_version == 4 else 'IPv6'
+        ip_version = 'IPv4' if message.ip_version == 4 else 'IPv6'
 
-            print(
-                f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
-                f"{message.src_ip}:{message.src_port}\t{message.dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
-            )
+        print(
+            f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
+            f"{message.src_ip}:{message.src_port}\t{message.dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
+        )
 
 
 if __name__ == "__main__":
