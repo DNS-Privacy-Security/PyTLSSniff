@@ -226,10 +226,12 @@ def main():
                 dns_name += ','.join(message.san)
 
         ip_version = 'IPv4' if message.ip_version == 4 else 'IPv6'
+        src_ip = message.src_ip if message.ip_version == 4 else f'[{message.src_ip}]'
+        dst_ip = message.dst_ip if message.ip_version == 4 else f'[{message.dst_ip}]'
 
         print(
             f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
-            f"{message.src_ip}:{message.src_port}\t{message.dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
+            f"{src_ip}:{message.src_port}\t{dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
         )
 
 
