@@ -93,9 +93,11 @@ class TLSHandshakeSniffer():
         if self.custom_display_filter != "":
             display_filter += f' && {self.custom_display_filter.strip()}'
 
-        capture = pyshark.LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter)
+        if packet_count is not None and packet_count <= 0:
+            packet_count = None
 
-        for packet in capture.sniff_continuously(packet_count):
+        capture = pyshark.LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter)
+        for packet in capture.sniff_continuously():
             san = None
             cn = None
             sni = None
@@ -125,7 +127,7 @@ class TLSHandshakeSniffer():
                     dst_ip = packet.ipv6.dst
                 else:
                     continue
-
+                
                 if sni is not None or cn is not None or (san is not None and len(san) > 0):
                     yield TLSHandshakeMessage(
                         handshake_type=handshake_type,
@@ -138,6 +140,11 @@ class TLSHandshakeSniffer():
                         cn=cn,
                         san=san
                     )
+
+                    if packet_count is not None:
+                        packet_count -= 1
+                        if packet_count <= 0:
+                            break
             except Exception:
                 pass
 
@@ -155,6 +162,8 @@ def parse_args():
                         help="sniff Common Name from certificate CN section")
     parser.add_argument("-i", '--interface', dest='interface', default="any",
                         help="name or idx of interface (default: any)", required=False)
+    parser.add_argument("-p", '--packet-count', dest='packet_count', type=int, default=None,
+                        help="stop after n packets (def: infinite)", required=False)
     parser.add_argument("-f", "--capture-filter", dest="capture_filter", default="",
                         help="packet filter in libpcap filter syntax", required=False)
     parser.add_argument("-Y", "--display-filter", dest="display_filter", default="",
@@ -172,34 +181,33 @@ def main():
         args.cn = True
         args.san = True
 
-    for message in handshake_sniffer.listen(args.sni, args.cn, args.san):
-        dns_name = ''
+        for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count):
+            dns_name = ''
 
-        if message.sni is not None:
-            dns_name = message.sni
-        if message.cn is not None:
-            if dns_name != '' and dns_name != message.cn:
-                dns_name += f",{message.cn}"
-            else:
-                dns_name = message.cn
-        if message.san is not None:
-            if message.sni in message.san:
-                message.san.remove(message.sni)
-            if message.cn in message.san:
-                message.san.remove(message.cn)
+            if message.sni is not None:
+                dns_name = message.sni
+            if message.cn is not None:
+                if dns_name != '' and dns_name != message.cn:
+                    dns_name += f",{message.cn}"
+                else:
+                    dns_name = message.cn
+            if message.san is not None:
+                if message.sni in message.san:
+                    message.san.remove(message.sni)
+                if message.cn in message.san:
+                    message.san.remove(message.cn)
 
-            if len(message.san) > 0:
-                if dns_name != '':
-                    dns_name += ','
-                dns_name += ','.join(message.san)
+                if len(message.san) > 0:
+                    if dns_name != '':
+                        dns_name += ','
+                    dns_name += ','.join(message.san)
 
-        ip_version = 'IPv4' if message.ip_version == 4 else 'IPv6'
+            ip_version = 'IPv4' if message.ip_version == 4 else 'IPv6'
 
-        print(
-            f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
-            f"{message.src_ip}:{message.src_port}\t{message.dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
-        )
-
+            print(
+                f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
+                f"{message.src_ip}:{message.src_port}\t{message.dst_ip}:{message.dst_port}\t" + f"{dns_name}", flush=True
+            )
 
 if __name__ == "__main__":
     main()
