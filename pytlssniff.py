@@ -92,7 +92,7 @@ class TLSHandshakeSniffer():
         display_filter = f'(ssl.record.content_type == 22 && ssl.handshake.type)'
 
         if self.custom_bpf_filter != '':
-            bpf_filter += f' && {self.custom_capture_filter.strip()}'
+            bpf_filter += f' && {self.custom_bpf_filter.strip()}'
         if self.custom_display_filter != '':
             display_filter += f' && {self.custom_display_filter.strip()}'
 
