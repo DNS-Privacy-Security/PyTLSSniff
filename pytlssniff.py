@@ -6,6 +6,7 @@ import base64
 import OpenSSL.crypto
 from typing import NamedTuple, Iterator, Optional, List
 from enum import Enum
+from OpenSSL.crypto import X509, FILETYPE_PEM
 from pyshark import FileCapture, LiveCapture
 from pyshark.packet.packet import Packet
 
@@ -54,7 +55,7 @@ class TLSHandshakeSniffer():
         self.custom_display_filter = custom_display_filter
 
     @classmethod
-    def _extract_certificate_san(cls, x509cert: OpenSSL.crypto.X509) -> Optional[List[str]]:
+    def _extract_certificate_san(cls, x509cert: X509) -> Optional[List[str]]:
         san = []
         for i in range(0, x509cert.get_extension_count()):
             ext = x509cert.get_extension(i)
@@ -69,7 +70,7 @@ class TLSHandshakeSniffer():
             return None
 
     @classmethod
-    def _parse_certificate(cls, certificate: str) -> Optional[OpenSSL.crypto.X509]:
+    def _parse_certificate(cls, certificate: str) -> Optional[X509]:
         try:
             cert = binascii.unhexlify(certificate.replace(':', ''))
             b64cert = base64.standard_b64encode(cert)
@@ -80,17 +81,15 @@ class TLSHandshakeSniffer():
             )
 
             return OpenSSL.crypto.load_certificate(
-                OpenSSL.crypto.FILETYPE_PEM,
+                FILETYPE_PEM,
                 b64certUtf8
             )
         except Exception:
             return None
 
     @classmethod
-    def _parse_packet(self, packet: Packet, sniff_sni=True, sniff_cn=True, sniff_san=True) -> Optional[TLSHandshakeMessage]:
-        san = None
-        cn = None
-        sni = None
+    def _get_handshake_message(cls, packet: Packet, sniff_sni=True, sniff_cn=True, sniff_san=True) -> Optional[TLSHandshakeMessage]:
+        san, cn, sni = None, None, None
 
         try:
             handshake_type = TLSHandshakeType(int(packet.ssl.handshake_type))
@@ -103,9 +102,9 @@ class TLSHandshakeSniffer():
 
             # Hopefully the SAN section will also be accessible with pyshark in future
             if sniff_san and 'handshake_certificate' in packet.ssl.field_names:
-                cert = self._parse_certificate(packet.ssl.handshake_certificate)
+                cert = cls._parse_certificate(packet.ssl.handshake_certificate)
                 if cert is not None:
-                    san = self._extract_certificate_san(cert)
+                    san = cls._extract_certificate_san(cert)
 
             if 'ip' in packet:
                 ip_version = 4
@@ -157,7 +156,7 @@ class TLSHandshakeSniffer():
             packet_iterator = capture.sniff_continuously()
 
         for packet in packet_iterator:
-            handshake_message = self._parse_packet(packet, sniff_sni=sniff_sni, sniff_cn=sniff_cn, sniff_san=sniff_san)
+            handshake_message = self._get_handshake_message(packet, sniff_sni=sniff_sni, sniff_cn=sniff_cn, sniff_san=sniff_san)
 
             if handshake_message is not None:
                 yield handshake_message
@@ -225,9 +224,14 @@ def main():
                     dns_name += ','
                 dns_name += ','.join(message.san)
 
-        ip_version = 'IPv4' if message.ip_version == 4 else 'IPv6'
-        src_ip = message.src_ip if message.ip_version == 4 else f'[{message.src_ip}]'
-        dst_ip = message.dst_ip if message.ip_version == 4 else f'[{message.dst_ip}]'
+        if message.ip_version == 4:
+            ip_version = 'IPv4'
+            src_ip = message.src_ip
+            dst_ip = message.dst_ip
+        else:
+            ip_version = 'IPv6'
+            src_ip = f'[{message.src_ip}]'
+            dst_ip = f'[{message.dst_ip}]'
 
         print(
             f"{message.handshake_type.name}({message.handshake_type.value})\t{ip_version}\t"
