@@ -5,7 +5,7 @@ import pyshark
 import binascii
 import base64
 import OpenSSL.crypto
-from typing import NamedTuple, Iterator, List
+from typing import NamedTuple, Iterator, Optional, List
 from enum import Enum
 
 
@@ -40,9 +40,9 @@ class TLSHandshakeMessage(NamedTuple):
     src_port: int
     dst_ip: str
     dst_port: int
-    sni: str
-    cn: str
-    san: List[str]
+    sni: Optional[str]
+    cn: Optional[str]
+    san: Optional[List[str]]
 
 
 class TLSHandshakeSniffer():
@@ -52,7 +52,7 @@ class TLSHandshakeSniffer():
         self.custom_display_filter = custom_capture_filter
 
     @classmethod
-    def _extract_certificate_san(cls, x509cert: OpenSSL.crypto.X509) -> List[str]:
+    def _extract_certificate_san(cls, x509cert: OpenSSL.crypto.X509) -> Optional[List[str]]:
         san = []
         for i in range(0, x509cert.get_extension_count()):
             ext = x509cert.get_extension(i)
@@ -61,10 +61,13 @@ class TLSHandshakeSniffer():
                     if san_item.startswith('dns:'):
                         san.append(san_item[4:].strip())
 
-        return san
+        if len(san) > 0:
+            return san
+        else:
+            return None
 
     @classmethod
-    def _parse_certificate(cls, certificate: str) -> OpenSSL.crypto.X509:
+    def _parse_certificate(cls, certificate: str) -> Optional[OpenSSL.crypto.X509]:
         try:
             cert = binascii.unhexlify(certificate.replace(':', ''))
             b64cert = base64.standard_b64encode(cert)
@@ -128,7 +131,7 @@ class TLSHandshakeSniffer():
                 else:
                     continue
                 
-                if sni is not None or cn is not None or (san is not None and len(san) > 0):
+                if sni is not None or cn is not None or san is not None:
                     yield TLSHandshakeMessage(
                         handshake_type=handshake_type,
                         ip_version=ip_version,
