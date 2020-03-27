@@ -2,6 +2,7 @@ os: linux
 dist: bionic
 language: python
 install: skip
+script: pytest
 
 # deploy:
 #   provider: pypi
