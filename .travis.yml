@@ -1,7 +1,7 @@
 os: linux
 dist: bionic
 language: python
-install: "true"
+install: skip
 
 # deploy:
 #   provider: pypi
