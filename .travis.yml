@@ -1,4 +1,7 @@
+os: linux
+dist: bionic
 language: python
+install: pip install --user -r requirements.txt || true
 
 deploy:
   provider: pypi

@@ -1,7 +1,6 @@
 import binascii
 import base64
 import OpenSSL.crypto
-import signal
 from typing import NamedTuple, Iterator, Optional, List
 from enum import Enum
 from OpenSSL.crypto import X509, FILETYPE_PEM
