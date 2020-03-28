@@ -178,7 +178,7 @@ class TLSHandshakeSniffer():
         except Exception:
             raise
         else:
-            raise StopIteration
+            return
         finally:
             # Restore original SIGINT handler
             signal.signal(signal.SIGINT, original_sigint_handler)

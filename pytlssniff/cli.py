@@ -3,7 +3,7 @@ from .sniffer import TLSHandshakeSniffer
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="pytlssniff")
 
     parser.add_argument("-d", '--debug', dest='debug', action='store_true',
                         help="enable debug mode")
