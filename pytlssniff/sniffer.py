@@ -1,6 +1,7 @@
 import binascii
 import base64
 import OpenSSL.crypto
+import signal
 from typing import NamedTuple, Iterator, Optional, List
 from enum import Enum
 from OpenSSL.crypto import X509, FILETYPE_PEM
@@ -132,6 +133,10 @@ class TLSHandshakeSniffer():
             return None
 
     def listen(self, sniff_sni=False, sniff_cn=False, sniff_san=False, packet_count: int = None, debug: bool = False) -> Iterator[TLSHandshakeMessage]:
+        # Workaround for pyshark, because SIGINT handling does not work properly
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, lambda *args: None)
+
         # Currently only IPv4 is supported for BPF tcp data access. Manpage says: "this will be fixed in the future" for IPv6.
         # Until then, only the 'tcp' filter is applied
         # bpf_filter = 'tcp[((tcp[12:1] & 0xf0) >> 2):1] = 22'
@@ -163,4 +168,6 @@ class TLSHandshakeSniffer():
                     if packet_count <= 0:
                         break
 
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        
         raise StopIteration
