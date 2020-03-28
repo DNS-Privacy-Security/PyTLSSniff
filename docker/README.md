@@ -15,7 +15,7 @@ docker run --network=host -it dnsprivacysecurity/pytlssniff
 ### Command line parameters
 
 ```
-$ docker run --network=host -it dnsprivacysecurity/pytlssniff --help
+$ docker run -it dnsprivacysecurity/pytlssniff --help
 usage: pytlssniff [-h] [-d] [-s] [-a] [-c] [-i INTERFACE] [-r INPUT_FILE]
                   [-p PACKET_COUNT] [-b BPF_FILTER] [-Y DISPLAY_FILTER]
 
