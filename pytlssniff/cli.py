@@ -27,7 +27,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def cli():
+def run():
     args = parse_args()
     handshake_sniffer = TLSHandshakeSniffer(args.interface, args.input_file, args.bpf_filter, args.display_filter)
 
@@ -68,4 +68,4 @@ def cli():
 
 
 if __name__ == "__main__":
-    cli()
+    run()

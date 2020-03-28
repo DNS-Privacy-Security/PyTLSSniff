@@ -1,6 +1,5 @@
 import binascii
 import base64
-import sys
 import OpenSSL.crypto
 import signal
 from typing import NamedTuple, Iterator, Optional, List
