@@ -1,5 +1,6 @@
 import binascii
 import base64
+import sys
 import OpenSSL.crypto
 import signal
 from typing import NamedTuple, Iterator, Optional, List
@@ -138,42 +139,47 @@ class TLSHandshakeSniffer():
         if original_sigint_handler == signal.default_int_handler:
             signal.signal(signal.SIGINT, lambda *args: None)
 
-        # Currently only IPv4 is supported for BPF tcp data access. Manpage says: "this will be fixed in the future" for IPv6.
-        # Until then, only the 'tcp' filter is applied
-        # bpf_filter = 'tcp[((tcp[12:1] & 0xf0) >> 2):1] = 22'
-        bpf_filter = 'tcp'
-        display_filter = f'(ssl.record.content_type == 22 && ssl.handshake.type)'
+        try:
+            # Currently only IPv4 is supported for BPF tcp data access. Manpage says: "this will be fixed in the future" for IPv6.
+            # Until then, only the 'tcp' filter is applied
+            # bpf_filter = 'tcp[((tcp[12:1] & 0xf0) >> 2):1] = 22'
+            bpf_filter = 'tcp'
+            display_filter = f'(ssl.record.content_type == 22 && ssl.handshake.type)'
 
-        if self.bpf_filter != '':
-            bpf_filter += f' && {self.bpf_filter.strip()}'
-        if self.display_filter != '':
-            display_filter += f' && {self.display_filter.strip()}'
+            if self.bpf_filter != '':
+                bpf_filter += f' && {self.bpf_filter.strip()}'
+            if self.display_filter != '':
+                display_filter += f' && {self.display_filter.strip()}'
 
-        if packet_count is not None and packet_count <= 0:
-            packet_count = None
+            if packet_count is not None and packet_count <= 0:
+                packet_count = None
 
-        if self.input_file is not None:
-            packet_iterator = iter(FileCapture(input_file=self.input_file, display_filter=display_filter, debug=debug))
+            if self.input_file is not None:
+                packet_iterator = iter(FileCapture(input_file=self.input_file, display_filter=display_filter, keep_packets=False, debug=debug))
+            else:
+                capture = LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter, debug=debug)
+                packet_iterator = capture.sniff_continuously()
+
+            if not (sniff_sni or sniff_cn or sniff_san):
+                sniff_sni = True
+                sniff_cn = True
+                sniff_san = True
+
+            for packet in packet_iterator:
+                handshake_message = self._get_handshake_message(packet, sniff_sni=sniff_sni, sniff_cn=sniff_cn, sniff_san=sniff_san)
+
+                if handshake_message is not None:
+                    yield handshake_message
+
+                    if packet_count is not None:
+                        packet_count -= 1
+                        if packet_count <= 0:
+                            break
+
+        except Exception:
+            raise
         else:
-            capture = LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter, debug=debug)
-            packet_iterator = capture.sniff_continuously()
-
-        if not (sniff_sni or sniff_cn or sniff_san):
-            sniff_sni = True
-            sniff_cn = True
-            sniff_san = True
-        
-        for packet in packet_iterator:
-            handshake_message = self._get_handshake_message(packet, sniff_sni=sniff_sni, sniff_cn=sniff_cn, sniff_san=sniff_san)
-
-            if handshake_message is not None:
-                yield handshake_message
-
-                if packet_count is not None:
-                    packet_count -= 1
-                    if packet_count <= 0:
-                        break
-
-        signal.signal(signal.SIGINT, original_sigint_handler)
-
-        raise StopIteration
+            raise StopIteration
+        finally:
+            # Restore original SIGINT handler
+            signal.signal(signal.SIGINT, original_sigint_handler)
