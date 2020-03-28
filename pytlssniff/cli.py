@@ -31,11 +31,6 @@ def cli():
     args = parse_args()
     handshake_sniffer = TLSHandshakeSniffer(args.interface, args.input_file, args.bpf_filter, args.display_filter)
 
-    if not (args.sni or args.cn or args.san):
-        args.sni = True
-        args.cn = True
-        args.san = True
-
     for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count, args.debug):
         dns_name = ''
 

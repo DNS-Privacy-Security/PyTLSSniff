@@ -46,11 +46,11 @@ class TLSHandshakeMessage(NamedTuple):
 
 
 class TLSHandshakeSniffer():
-    def __init__(self, interface='any', input_file=None, custom_bpf_filter='', custom_display_filter=''):
+    def __init__(self, interface='any', input_file=None, bpf_filter='', display_filter=''):
         self.interface = interface
         self.input_file = input_file
-        self.custom_bpf_filter = custom_bpf_filter
-        self.custom_display_filter = custom_display_filter
+        self.bpf_filter = bpf_filter
+        self.display_filter = display_filter
 
     @classmethod
     def _extract_certificate_san(cls, x509cert: X509) -> Optional[List[str]]:
@@ -144,10 +144,10 @@ class TLSHandshakeSniffer():
         bpf_filter = 'tcp'
         display_filter = f'(ssl.record.content_type == 22 && ssl.handshake.type)'
 
-        if self.custom_bpf_filter != '':
-            bpf_filter += f' && {self.custom_bpf_filter.strip()}'
-        if self.custom_display_filter != '':
-            display_filter += f' && {self.custom_display_filter.strip()}'
+        if self.bpf_filter != '':
+            bpf_filter += f' && {self.bpf_filter.strip()}'
+        if self.display_filter != '':
+            display_filter += f' && {self.display_filter.strip()}'
 
         if packet_count is not None and packet_count <= 0:
             packet_count = None
@@ -157,6 +157,11 @@ class TLSHandshakeSniffer():
         else:
             capture = LiveCapture(interface=self.interface, bpf_filter=bpf_filter, display_filter=display_filter, debug=debug)
             packet_iterator = capture.sniff_continuously()
+
+        if not (sniff_sni or sniff_cn or sniff_san):
+            sniff_sni = True
+            sniff_cn = True
+            sniff_san = True
         
         for packet in packet_iterator:
             handshake_message = self._get_handshake_message(packet, sniff_sni=sniff_sni, sniff_cn=sniff_cn, sniff_san=sniff_san)
