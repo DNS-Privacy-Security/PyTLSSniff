@@ -54,7 +54,7 @@ optional arguments:
 
 ```sh
 $ pytlssniff -s -i eth0 -p 5 -b "ip host 10.8.3.35"
-client_hello(1) IPv4    10.8.3.35:60588 88.99.24.79:443 biot.com
+client_hello(1) IPv4    10.8.3.35:60588 88.99.24.79:443         biot.com
 client_hello(1) IPv4    10.8.3.35:53412 91.198.174.194:443      wikipedia.com
 client_hello(1) IPv4    10.8.3.35:58990 91.198.174.192:443      www.wikipedia.org
 client_hello(1) IPv4    10.8.3.35:55302 140.82.118.3:443        github.com
@@ -64,7 +64,7 @@ client_hello(1) IPv4    10.8.3.35:48082 185.199.110.154:443     github.githubass
 ### File trace example with Wireshark display filter
 
 ```sh
-$ pytlssniff -s -r "~/exaple/trace.pcap" -Y "ip.addr == 10.8.3.35"
+$ pytlssniff -s -r "~/example/trace.pcap" -Y "ip.addr == 10.8.3.35"
 client_hello(1) IPv4    10.8.3.35:56670 91.198.174.192:443      www.wikipedia.org
 client_hello(1) IPv4    10.8.3.35:52000 91.198.174.208:443      upload.wikimedia.org
 client_hello(1) IPv4    10.8.3.35:56674 91.198.174.192:443      de.wikipedia.org
