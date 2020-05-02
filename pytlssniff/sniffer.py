@@ -90,17 +90,18 @@ class TLSHandshakeSniffer():
         san, cn, sni = None, None, None
 
         try:
-            handshake_type = TLSHandshakeType(int(packet.ssl.handshake_type))
+            tls_field = 'tls' if 'tls' in packet else 'ssl'
+            handshake_type = TLSHandshakeType(int(packet[tls_field].handshake_type))
 
-            if sniff_sni and 'handshake_extensions_server_name' in packet.ssl.field_names and packet.ssl.handshake_extensions_server_name != '':
-                sni = packet.ssl.handshake_extensions_server_name.lower()
+            if sniff_sni and 'handshake_extensions_server_name' in packet[tls_field].field_names and packet[tls_field].handshake_extensions_server_name != '':
+                sni = packet[tls_field].handshake_extensions_server_name.lower()
 
-            if sniff_cn and 'x509ce_dnsname' in packet.ssl.field_names:
-                cn = packet.ssl.x509ce_dnsname.lower()
+            if sniff_cn and 'x509ce_dnsname' in packet[tls_field].field_names:
+                cn = packet[tls_field].x509ce_dnsname.lower()
 
             # Hopefully the SAN section will also be accessible with pyshark in future
-            if sniff_san and 'handshake_certificate' in packet.ssl.field_names:
-                cert = cls._parse_certificate(packet.ssl.handshake_certificate)
+            if sniff_san and 'handshake_certificate' in packet[tls_field].field_names:
+                cert = cls._parse_certificate(packet[tls_field].handshake_certificate)
                 if cert is not None:
                     san = cls._extract_certificate_san(cert)
 
