@@ -135,9 +135,7 @@ class TLSHandshakeSniffer():
 
     def listen(self, sniff_sni=False, sniff_cn=False, sniff_san=False, packet_count: int = None, debug: bool = False) -> Iterator[TLSHandshakeMessage]:
         # Workaround for pyshark, because SIGINT handling does not work properly
-        original_sigint_handler = signal.getsignal(signal.SIGINT)
-        if original_sigint_handler == signal.default_int_handler:
-            signal.signal(signal.SIGINT, lambda *args: None)
+        signal.signal(signal.SIGINT, lambda *args: signal.raise_signal(signal.SIGKILL))
 
         try:
             # Currently only IPv4 is supported for BPF tcp data access. Manpage says: "this will be fixed in the future" for IPv6.
@@ -178,8 +176,5 @@ class TLSHandshakeSniffer():
 
         except Exception:
             raise
-        else:
-            return
-        finally:
-            # Restore original SIGINT handler
-            signal.signal(signal.SIGINT, original_sigint_handler)
+        
+        return
