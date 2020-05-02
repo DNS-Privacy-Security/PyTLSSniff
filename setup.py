@@ -8,7 +8,7 @@ with open('requirements.txt') as fh:
 
 setuptools.setup(
     name="PyTLSSniff",
-    version="0.1.0",
+    version="0.1.1",
     author="M4t7e",
     license='MIT License',
     description="Python TLS handshake sniffer to extract domain names",
@@ -21,7 +21,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6, <=3.8',
+    python_requires='>=3.6',
     install_requires=install_requires,
     platforms=('Any'),
     entry_points={'console_scripts': [
