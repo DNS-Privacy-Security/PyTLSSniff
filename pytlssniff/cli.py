@@ -29,7 +29,9 @@ def parse_args():
 
 def run():
     args = parse_args()
-    handshake_sniffer = TLSHandshakeSniffer(args.interface, args.input_file, args.bpf_filter, args.display_filter)
+    handshake_sniffer = TLSHandshakeSniffer(
+        args.interface, args.input_file, args.bpf_filter, args.display_filter
+    )
 
     for message in handshake_sniffer.listen(args.sni, args.cn, args.san, args.packet_count, args.debug):
         dns_name = ''
